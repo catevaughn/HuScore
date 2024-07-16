@@ -1,1 +1,1 @@
-# huprot_analysis
+# HuScore
