@@ -1,0 +1,209 @@
+#RUN all of these functions 
+library(tidyverse)
+read_single_gpr <- function(single_file) {
+  lines <- read_lines(single_file, n_max = 2)
+  if (lines[1] != "ATF\t1.0") 
+    stop("Expected first line to be ATF 1.0")
+  gpr.offset <- parse_number(lines[2])
+  data <- read_tsv(single_file, skip = gpr.offset + 2)
+  print(data)
+}
+get_blacklist_IgG_635 <- function() {
+  c(
+    "JHU06646.B5C17R16", 
+    "JHU15223.B12C28R60", 
+    "JHU15224.B11C21R58",
+    "JHU15327.B12C3R64", 
+    "JHU00912.B1C22R16", 
+    "JHU06762.B6C1R14",
+    "JHU15226.B11C10R56",
+    "JHU16426.B12C5R80",
+    "JHU15997.B10C7R72",
+    "JHU16423.B9C23R80",
+    "JHU15128.B9C16R58",
+    "JHU08301.B7C11R42",
+    "JHU01386.B4C1R22",
+    "JHU15998.B12C7R72",
+    "JHU07812.B8C17R34",
+    "JHU06761.B7C1R14",
+    "JHU01487.B4C7R22",
+    "JHU15994.B9C4R88",
+    "JHU15225.B12C10R56",
+    "JHU08300.B8C16R40",
+    "JHU03305.B2C25R54",
+    "JHU15994.B9C18R88",
+    "JHU02822.B3C22R44",
+    "JHU15996.B11C7R72",
+    "JHU15995.B11C10R72",
+    "JHU15130.B9C25R60",
+    "JHU08684.B8C4R46",
+    "JHU16425.B11C2R84", 
+    "JHU15432.B12C27R66",
+    "JHU13192.B9C17R30",
+    "JHU15993.B9C13R68",
+    "JHU07813.B6C22R34",
+    "JHU06740.B5C6R14",
+    "JHU02868.B3C14R44",
+    "JHU08338.B8C6R40",
+    "JHU11217.B8C26R90",
+    "JHU08252.B7C9R42",
+    "JHU15471.B8C27R34",
+    "JHU10449.B7C23R78",
+    "JHU06744.B6C6R14",
+    "JHU07843.B7C14R34",
+    "JHU15317.B11C20R64",
+    "JHU15426.B11C27R66",
+    "JHU08417.B7C30R38", 
+    "JHU15242.B10C21R58",
+    "JHU15119.B9C16R60", 
+    "JHU15228.B11C28R60",
+    "JHU04424.B15C32R80",
+    "JHU06691.B5C29R16", 
+    "JHU15163.B9C24R60", 
+    "JHU16467.B10C5R82",
+    "JHU08417.B7C18R38",
+    "JHU15222.B12C31R60",
+    "JHU15378.B11C3R64",
+    "JHU15201.B12C7R56", 
+    "JHU15383.B10C27R66",
+    "JHU15218.B12C30R56",
+    "JHU08298.B7C16R40", 
+    "JHU12421.B9C8R16",
+    "JHU15260.B10C10R56",
+    "JHU04405.B3C9R72", 
+    "JHU01404.B3C4R20", 
+    "JHU15180.B12C24R60",
+    "JHU14398.B12C11R46",
+    "JHU16435.B11C5R84",
+    "JHU06802.B5C16R16",
+    "JHU01450.B4C31R20",
+    "JHU29136.B20C1R38",
+    "JHU15129.B10C11R60")
+}
+get_blacklist_IgA_532 <- function() {
+  c(
+    "JHU16422.B10C5R80",
+    "JHU15126.B11C19R58",
+    "JHU00501.B3C14R8",
+    "JHU04166.B4C13R62",
+    "JHU15326.B10C20R62",
+    "JHU04487.B1C19R68",
+    "JHU16097.B11C26R76",
+    "JHU09164.B5C13R52",
+    "JHU04487.B1C25R68",
+    "JHU08252.B7C9R42",
+    "JHU16300.B10C4R78",
+    "JHU00420.B4C12R12",
+    "Auto-antigen.B20C24R38",
+    "JHU10852.B7C8R82",
+    "JHU05126.B2C14R82",
+    "JHU13192.B9C17R30",
+    "JHU06916.B16C5R88",
+    "JHU13741.B9C28R34",
+    "JHU05092.B4C32R82",
+    "JHU03648.B1C25R60",
+    "JHU09861.B15C16R14",
+    "JHU17361.B15C18R40",
+    "JHU04475.B2C25R70",
+    "JHU10328.B6C13R68",
+    "JHU01525.B4C28R24",
+    "JHU11649.B9C9R4",
+    "JHU01152.B3C30R18",
+    "JHU10449.B7C23R78",
+    "JHU21320.B14C16R88")
+}
+analysis_635 <- function(data, median_col = `F635 Median`, threshold = 3) 
+{
+  blacklist <- get_blacklist_IgG_635()
+  data %>%
+    filter(Name != "ND" & ID != "Control") %>%
+    arrange(ID) %>%
+    mutate(
+      row_number_2 = ceiling(row_number() / 2)
+    ) %>%
+    group_by(row_number_2) %>%
+    summarize(
+      MFI_Avg = mean({{ median_col }}) + 1,
+      Even_ID = max(ID),
+      Name = min(Name)
+    ) %>%
+    filter(!(Even_ID %in% blacklist)) %>%
+    mutate(
+      log2_values = log2(MFI_Avg),
+      Z_Score = (log2_values - mean(log2_values)) / sd(log2_values)
+    ) %>%
+    arrange(desc(Z_Score)) %>%
+    filter(Z_Score >= threshold)
+}
+analysis_532 <- function(data, median_col = `F532 Median`, threshold = 3) 
+{
+  # Define a function that returns a blacklist vector for a given wavelength
+  blacklist <- get_blacklist_IgA_532()
+  data %>%
+    filter(Name != "ND" & ID != "Control") %>%
+    arrange(ID) %>%
+    mutate(
+      row_number_2 = ceiling(row_number() / 2)
+    ) %>%
+    group_by(row_number_2) %>%
+    summarize(
+      MFI_Avg = mean({{ median_col }}) + 1,
+      Even_ID = max(ID),
+      Name = min(Name)
+    ) %>%
+    filter(!(Even_ID %in% blacklist)) %>%
+    mutate(
+      log2_values = log2(MFI_Avg),
+      Z_Score = (log2_values - mean(log2_values)) / sd(log2_values)
+    ) %>%
+    arrange(desc(Z_Score)) %>%
+    filter(Z_Score >= threshold)
+}
+file_analysis_huprot <- function(single_file, threshold = 3) {
+  data <- read_single_gpr(single_file)
+  output_635 <- analysis_635(data, threshold = threshold)
+  output_532 <- analysis_532(data, threshold = threshold)
+  output_635_fn <- str_replace(single_file, "\\.gpr", "_635_IgG_results_v3.csv")
+  output_532_fn <- str_replace(single_file, "\\.gpr", "_532_IgA_results_v3.csv")
+  write_csv(output_635, output_635_fn)
+  write_csv(output_532, output_532_fn)
+}
+file_analysis_huprot_IgG_635 <- function(single_file, threshold = 3) {
+  data <- read_single_gpr(single_file)
+  output_635 <- analysis_635(data, threshold = threshold)
+  #output_532 <- analysis_532(data, threshold = threshold)
+  output_635_fn <- str_replace(single_file, "\\.gpr", "_635_IgG_results_v3.csv")
+  #output_532_fn <- str_replace(single_file, "\\.gpr", "_532_results.csv")
+  write_csv(output_635, output_635_fn)
+  #write_csv(output_532, output_532_fn)
+  }
+  file_analysis_huprot_IgA_532 <- function(single_file, threshold = 3) {
+  data <- read_single_gpr(single_file)
+  #output_635 <- analysis_635(data, threshold = threshold)
+  output_532 <- analysis_532(data, threshold = threshold)
+  #output_635_fn <- str_replace(single_file, "\\.gpr", "_635_results_z.csv")
+  output_532_fn <- str_replace(single_file, "\\.gpr", "_532_IgA_results_v3.csv")
+  #write_csv(output_635, output_635_fn)
+  write_csv(output_532, output_532_fn)
+}
+folder_analysis_huprot <- function(folder, threshold = 3) {
+  gpr_files <- list.files(folder, pattern = ".gpr", full.names = TRUE)
+  if(length(gpr_files) == 0) {
+    stop("No GPR files found in specified folder")
+  }
+  for(file in gpr_files) {
+    file_analysis_huprot(file, threshold = threshold)
+  }
+}
+
+# In console: read in ONE of these
+gpr_folder <- folder/path
+gpr_file_IgA_IgG <- file/path
+gpr_file_IgA_ONLY <- file/path
+gpr_file_IgG_ONLY <- file/path
+
+# In console: use corresponding function for your folder or file 
+folder_analysis_huprot(gpr_folder)
+file_analysis_huprot(gpr_file_IgA_IgG)
+file_analysis_huprot_IgG_635(gpr_file_IgG_ONLY)
+file_analysis_huprot_IgA_532(gpr_file_IgA_ONLY)
