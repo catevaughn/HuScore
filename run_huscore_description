@@ -23,6 +23,7 @@ read_single_gpr <- function(single_file) {
   data <- read_tsv(single_file, skip = gpr.offset + 2)
   print(data)
 }
+## This function reads in a single file as the input and its output is a gpr file tibble. 
 
 #4: Then run the get_blacklist_IgG_635 function. This function contains a vector of blacklisted protein IDs: these protein IDs should not be included in analysis because they are found in a healthy population. The IDs in this function are specific to the IgG pathway. 
 get_blacklist_IgG_635 <- function() {
